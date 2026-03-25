@@ -3,11 +3,11 @@ import requests
 from html.parser import HTMLParser
 
 LANG_CODES = {
-    'cz': 'cs-CZ',
+    'cz': 'cs',
     'de': 'de-DE',
-    'es': 'es-ES',
+    'es': 'es',
     'bg': 'auto',  # LanguageTool doesn't support BG, use auto-detect
-    'gr': 'el-GR',
+    'gr': 'el',
 }
 
 # LanguageTool free API limit is ~20KB
@@ -87,19 +87,27 @@ def spellcheck(text, lang='cz'):
         text = text[:MAX_TEXT_LENGTH]
         truncated = True
 
+    # Force the language — never fall back to auto (except BG)
+    # LanguageTool auto-detect confuses Czech with Slovak
     params = {
         'text': text,
         'language': lt_lang,
+        'disabledRules': 'WHITESPACE_RULE',
     }
 
     try:
         resp = requests.post(LANGUAGETOOL_API, data=params, timeout=30)
         if resp.status_code == 400:
-            # Try with auto-detect if specific language fails
-            params['language'] = 'auto'
-            resp = requests.post(LANGUAGETOOL_API, data=params, timeout=30)
+            # Return the actual error for debugging
+            try:
+                error_detail = resp.json().get('message', resp.text[:200])
+            except Exception:
+                error_detail = resp.text[:200]
+            return {'error': f'API rejected request: {error_detail}', 'matches': []}
         resp.raise_for_status()
         result = resp.json()
+    except requests.exceptions.HTTPError as e:
+        return {'error': str(e), 'matches': []}
     except Exception as e:
         return {'error': str(e), 'matches': []}
 
@@ -118,8 +126,15 @@ def spellcheck(text, lang='cz'):
             'category': m.get('rule', {}).get('category', {}).get('name', ''),
         })
 
+    lang_info = result.get('language', {})
+    detected_name = lang_info.get('name', lt_lang)
+    detected_code = lang_info.get('detectedLanguage', {}).get('code', lang_info.get('code', ''))
+    requested_lang = lt_lang
+
     return {
-        'language': result.get('language', {}).get('name', lt_lang),
+        'language': detected_name,
+        'detected_code': detected_code,
+        'requested_lang': requested_lang,
         'matches': matches,
         'truncated': truncated,
     }

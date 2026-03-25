@@ -197,13 +197,17 @@ with tab_spellcheck:
             else:
                 matches = result['matches']
                 detected_lang = result.get('language', '')
+                detected_code = result.get('detected_code', '')
+                requested = result.get('requested_lang', '')
                 if result.get('truncated'):
                     st.info('Text was truncated to 20,000 characters (free API limit).')
 
+                st.caption(f'Requested: `{requested}` | Checked as: **{detected_lang}** (`{detected_code}`)')
+
                 if not matches:
-                    st.success(f'No issues found! (checked as {detected_lang})')
+                    st.success(f'No issues found!')
                 else:
-                    st.warning(f'Found **{len(matches)}** issue(s) (checked as {detected_lang})')
+                    st.warning(f'Found **{len(matches)}** issue(s)')
 
                     for i, m in enumerate(matches):
                         with st.container():
