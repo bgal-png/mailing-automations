@@ -72,14 +72,8 @@ with tab_generator:
             cols = st.columns(5)
             for i, lang in enumerate(LANG_CONFIG):
                 val = campaign_data.get(key, {}).get(lang, '')
-                cols[i].text_input(f'{lang.upper()}', val, key=f'sub_{key}_{lang}_{selected["start_row"]}', disabled=True)
-                cols[i].markdown(
-                    f'<button onclick="navigator.clipboard.writeText(`{val.replace(chr(96), "")}`)" '
-                    f'style="font-size:11px;padding:1px 8px;cursor:pointer;border:1px solid rgba(128,128,128,0.3);border-radius:4px;'
-                    f'background:transparent;color:inherit;">'
-                    f'Copy</button>',
-                    unsafe_allow_html=True
-                )
+                cols[i].caption(lang.upper())
+                cols[i].code(val, language=None)
 
     st.subheader('Campaign settings')
 
