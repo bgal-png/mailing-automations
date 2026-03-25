@@ -3,11 +3,11 @@ import requests
 from html.parser import HTMLParser
 
 LANG_CODES = {
-    'cz': 'cs',
+    'cz': 'cs-CZ',
     'de': 'de-DE',
-    'es': 'es',
+    'es': 'es-ES',
     'bg': 'auto',  # LanguageTool doesn't support BG, use auto-detect
-    'gr': 'el',
+    'gr': 'el-GR',
 }
 
 # LanguageTool free API limit is ~20KB
