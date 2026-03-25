@@ -90,7 +90,7 @@ with col2:
     discount_code = st.text_input('Discount code', value=selected.get('code', ''), placeholder='e.g. sun20')
 
 st.subheader('Banner / CTA links (one per language)')
-st.caption('Just paste the path after the domain, e.g. `/vybrane-slunecni-bryle.html`')
+st.caption('Just paste the slug, e.g. `vybrane-slunecni-bryle` → `https://www.domain.com/vybrane-slunecni-bryle.html`')
 banner_links = {}
 cols = st.columns(5)
 for i, lang in enumerate(LANG_CONFIG):
@@ -98,13 +98,15 @@ for i, lang in enumerate(LANG_CONFIG):
     cols[i].markdown(f'[**{lang.upper()} ({domain})**](https://www.{domain}/)')
     path_input = cols[i].text_input(
         f'{lang.upper()} path',
-        placeholder=f'/your-page.html',
+        placeholder=f'your-page-slug',
         key=f'link_{lang}',
         label_visibility='collapsed'
     )
     if path_input:
-        path = path_input if path_input.startswith('/') else f'/{path_input}'
-        banner_links[lang] = f'https://www.{domain}{path}'
+        slug = path_input.strip().strip('/')
+        if slug.endswith('.html'):
+            slug = slug[:-5]
+        banner_links[lang] = f'https://www.{domain}/{slug}.html'
     else:
         banner_links[lang] = ''
 
