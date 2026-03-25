@@ -3,11 +3,19 @@ import requests
 from html.parser import HTMLParser
 
 LANG_CODES = {
-    'cz': 'cs',
+    'cz': 'sk-SK',  # Czech not supported by LanguageTool, Slovak is closest
     'de': 'de-DE',
-    'es': 'es',
-    'bg': 'auto',  # LanguageTool doesn't support BG, use auto-detect
-    'gr': 'el',
+    'es': 'es-ES',
+    'bg': 'auto',  # Bulgarian not supported, use auto-detect
+    'gr': 'el-GR',
+}
+
+LANG_SUPPORTED = {
+    'cz': False,
+    'de': True,
+    'es': True,
+    'bg': False,
+    'gr': True,
 }
 
 # LanguageTool free API limit is ~20KB

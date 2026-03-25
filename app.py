@@ -5,7 +5,7 @@ import io
 import os
 from datetime import date
 from generator import parse_campaigns, get_campaign_data, generate_all, slugify, LANG_CONFIG
-from spellcheck import spellcheck, fetch_text_from_url, extract_text_from_html
+from spellcheck import spellcheck, fetch_text_from_url, extract_text_from_html, LANG_SUPPORTED
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 
@@ -167,14 +167,17 @@ with tab_spellcheck:
     st.subheader('Campaign Spell Checker')
     st.caption('Check spelling and grammar across CZ, DE, ES, BG, GR using LanguageTool')
 
-    LANG_LABELS = {'cz': 'Czech', 'de': 'German', 'es': 'Spanish', 'bg': 'Bulgarian', 'gr': 'Greek'}
+    LANG_LABELS = {'de': 'German', 'es': 'Spanish', 'gr': 'Greek', 'cz': 'Czech (using Slovak)', 'bg': 'Bulgarian (auto-detect)'}
 
     check_lang = st.selectbox(
         'Language',
         options=list(LANG_LABELS.keys()),
-        format_func=lambda x: f'{x.upper()} — {LANG_LABELS[x]}',
+        format_func=lambda x: f'{x.upper()} — {LANG_LABELS[x]}' + ('' if LANG_SUPPORTED.get(x) else ' ⚠️'),
         key='spellcheck_lang'
     )
+
+    if not LANG_SUPPORTED.get(check_lang):
+        st.warning(f'LanguageTool does not fully support this language. Results may be less accurate.')
 
     st.info('**How to use:** Open the rendered email in your browser → select all text (Ctrl+A) → copy (Ctrl+C) → paste below (Ctrl+V)')
 
