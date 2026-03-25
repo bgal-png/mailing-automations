@@ -74,10 +74,12 @@ if uploaded_file:
     cols = st.columns(5)
     for i, lang in enumerate(LANG_CONFIG):
         domain = LANG_CONFIG[lang]['domain']
+        cols[i].markdown(f'[**{lang.upper()} ({domain})**](https://www.{domain}/)')
         banner_links[lang] = cols[i].text_input(
-            f'{lang.upper()} ({domain})',
+            f'{lang.upper()} link',
             placeholder=f'https://www.{domain}/...',
-            key=f'link_{lang}'
+            key=f'link_{lang}',
+            label_visibility='collapsed'
         )
 
     countdown_url = st.text_input(
