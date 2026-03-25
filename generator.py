@@ -55,10 +55,23 @@ def parse_campaigns(df):
         if label == 'Notes' and (i + 9) < len(df):
             name_cell = df.iloc[i + 1, 1]
             if pd.notna(name_cell):
-                name = str(name_cell).split('\n')[0].strip()
+                full_text = str(name_cell)
+                lines = [l.strip() for l in full_text.split('\n') if l.strip()]
+                name = lines[0]
+                # Extract date range (last line, pattern like "30.4 - 7.5.2026")
+                date_range = ''
+                code = ''
+                for line in lines:
+                    if re.search(r'\d+\.?\d*\s*-\s*\d+\.\d+\.\d{4}', line):
+                        date_range = line
+                    if line.lower().startswith('kód:'):
+                        code = line.split(':', 1)[1].strip()
                 campaigns.append({
                     'name': name,
                     'start_row': i,
+                    'date_range': date_range,
+                    'code': code,
+                    'display': f'{name}  ({date_range})' if date_range else name,
                 })
             i += 10
         else:

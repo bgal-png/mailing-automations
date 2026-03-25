@@ -35,9 +35,9 @@ if uploaded_file:
         st.stop()
 
     # Step 2: Select campaign
-    campaign_names = [c['name'] for c in campaigns]
-    selected_name = st.selectbox('Select campaign', campaign_names)
-    selected = next(c for c in campaigns if c['name'] == selected_name)
+    campaign_displays = [c['display'] for c in campaigns]
+    selected_display = st.selectbox('Select campaign', campaign_displays)
+    selected = next(c for c in campaigns if c['display'] == selected_display)
     campaign_data = get_campaign_data(df, selected['start_row'])
 
     # Show subject lines for reference
@@ -49,13 +49,25 @@ if uploaded_file:
                 val = campaign_data.get(key, {}).get(lang, '')
                 cols[i].text_input(f'{lang.upper()}', val, key=f'sub_{key}_{lang}', disabled=True)
 
-    # Step 3: Input fields
+    # Step 3: Input fields — auto-fill end date and code from spreadsheet
     st.subheader('Campaign settings')
+
+    # Parse end date from date_range (e.g. "31.3 - 7.4.2026")
+    default_date = date.today()
+    if selected.get('date_range'):
+        import re as _re
+        m = _re.search(r'(\d+)\.(\d+)\.(\d{4})\s*$', selected['date_range'])
+        if m:
+            try:
+                default_date = date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+            except ValueError:
+                pass
+
     col1, col2 = st.columns(2)
     with col1:
-        end_date = st.date_input('Campaign end date', value=date.today())
+        end_date = st.date_input('Campaign end date', value=default_date)
     with col2:
-        discount_code = st.text_input('Discount code', placeholder='e.g. sun20')
+        discount_code = st.text_input('Discount code', value=selected.get('code', ''), placeholder='e.g. sun20')
 
     st.subheader('Banner / CTA links (one per language)')
     banner_links = {}
