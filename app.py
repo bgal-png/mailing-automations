@@ -70,17 +70,23 @@ if uploaded_file:
         discount_code = st.text_input('Discount code', value=selected.get('code', ''), placeholder='e.g. sun20')
 
     st.subheader('Banner / CTA links (one per language)')
+    st.caption('Just paste the path after the domain, e.g. `/vybrane-slunecni-bryle.html`')
     banner_links = {}
     cols = st.columns(5)
     for i, lang in enumerate(LANG_CONFIG):
         domain = LANG_CONFIG[lang]['domain']
         cols[i].markdown(f'[**{lang.upper()} ({domain})**](https://www.{domain}/)')
-        banner_links[lang] = cols[i].text_input(
-            f'{lang.upper()} link',
-            placeholder=f'https://www.{domain}/...',
+        path_input = cols[i].text_input(
+            f'{lang.upper()} path',
+            placeholder=f'/your-page.html',
             key=f'link_{lang}',
             label_visibility='collapsed'
         )
+        if path_input:
+            path = path_input if path_input.startswith('/') else f'/{path_input}'
+            banner_links[lang] = f'https://www.{domain}{path}'
+        else:
+            banner_links[lang] = ''
 
     COUNTDOWN_BASE_URL = 'https://countdown-timer-psi-fawn.vercel.app/api/countdown'
 
