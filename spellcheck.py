@@ -47,7 +47,12 @@ def extract_text_from_html(html):
 
 
 def fetch_text_from_url(url):
-    resp = requests.get(url, timeout=15)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
+    resp = requests.get(url, headers=headers, timeout=15)
     resp.raise_for_status()
     return extract_text_from_html(resp.text)
 
