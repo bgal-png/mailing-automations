@@ -176,32 +176,14 @@ with tab_spellcheck:
         key='spellcheck_lang'
     )
 
-    input_method = st.radio('Input method', ['Paste text', 'Paste URL (rendered email)'], horizontal=True)
+    st.info('**How to use:** Open the rendered email in your browser → select all text (Ctrl+A) → copy (Ctrl+C) → paste below (Ctrl+V)')
 
-    text_to_check = ''
-
-    if input_method == 'Paste text':
-        text_to_check = st.text_area(
-            'Paste email text here',
-            height=250,
-            placeholder='Copy the text from your rendered email and paste it here...',
-            key='spellcheck_text'
-        )
-    else:
-        url_input = st.text_input(
-            'Rendered email URL',
-            placeholder='https://cockyonlinecz.ecomailapp.cz/campaigns/render/...',
-            key='spellcheck_url'
-        )
-        if url_input:
-            try:
-                with st.spinner('Fetching email content...'):
-                    text_to_check = fetch_text_from_url(url_input)
-                st.success(f'Extracted {len(text_to_check)} characters')
-                with st.expander('Extracted text'):
-                    st.text(text_to_check[:2000])
-            except Exception as e:
-                st.error(f'Could not fetch URL: {e}')
+    text_to_check = st.text_area(
+        'Paste email text here',
+        height=250,
+        placeholder='Select all text from your rendered email and paste it here...',
+        key='spellcheck_text'
+    )
 
     if st.button('Check spelling', type='primary', key='spellcheck_btn'):
         if not text_to_check.strip():
