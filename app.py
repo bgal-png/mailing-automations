@@ -70,7 +70,8 @@ with st.expander('Subject lines (for reference)'):
             cols[i].text_input(f'{lang.upper()}', val, key=f'sub_{key}_{lang}_{selected["start_row"]}', disabled=True)
             cols[i].markdown(
                 f'<button onclick="navigator.clipboard.writeText(`{val.replace(chr(96), "")}`)" '
-                f'style="font-size:11px;padding:1px 8px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#f0f0f0;">'
+                f'style="font-size:11px;padding:1px 8px;cursor:pointer;border:1px solid rgba(128,128,128,0.3);border-radius:4px;'
+                f'background:transparent;color:inherit;">'
                 f'📋 Copy</button>',
                 unsafe_allow_html=True
             )
