@@ -67,7 +67,7 @@ with st.expander('Subject lines (for reference)'):
         cols = st.columns(5)
         for i, lang in enumerate(LANG_CONFIG):
             val = campaign_data.get(key, {}).get(lang, '')
-            cols[i].text_input(f'{lang.upper()}', val, key=f'sub_{key}_{lang}_{selected["start_row"]}', disabled=True)
+            cols[i].code(val, language=None)
 
 # Step 3: Input fields — auto-fill end date and code from spreadsheet
 st.subheader('Campaign settings')
