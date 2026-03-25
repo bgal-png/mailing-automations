@@ -215,6 +215,8 @@ with tab_spellcheck:
             else:
                 matches = result['matches']
                 detected_lang = result.get('language', '')
+                if result.get('truncated'):
+                    st.info('Text was truncated to 20,000 characters (free API limit).')
 
                 if not matches:
                     st.success(f'No issues found! (checked as {detected_lang})')

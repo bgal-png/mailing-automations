@@ -1,3 +1,4 @@
+import re
 import requests
 from html.parser import HTMLParser
 
@@ -5,9 +6,12 @@ LANG_CODES = {
     'cz': 'cs',
     'de': 'de-DE',
     'es': 'es',
-    'bg': 'bg',  # LanguageTool doesn't fully support BG, will fall back to auto
+    'bg': 'auto',  # LanguageTool doesn't support BG, use auto-detect
     'gr': 'el',
 }
+
+# LanguageTool free API limit is ~20KB
+MAX_TEXT_LENGTH = 20000
 
 LANGUAGETOOL_API = 'https://api.languagetool.org/v2/check'
 
@@ -48,18 +52,47 @@ def fetch_text_from_url(url):
     return extract_text_from_html(resp.text)
 
 
+def clean_text(text):
+    """Clean pasted text: remove HTML entities, excessive whitespace, non-printable chars."""
+    # Decode common HTML entities
+    text = text.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    # Remove any remaining HTML tags that might have been pasted
+    text = re.sub(r'<[^>]+>', ' ', text)
+    # Remove URLs (spell checkers choke on these)
+    text = re.sub(r'https?://\S+', '', text)
+    # Remove email addresses
+    text = re.sub(r'\S+@\S+\.\S+', '', text)
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
 def spellcheck(text, lang='cz'):
     lt_lang = LANG_CODES.get(lang, 'auto')
+
+    # Clean the text first
+    text = clean_text(text)
+
+    if not text.strip():
+        return {'error': 'No text to check after cleaning.', 'matches': []}
+
+    # Truncate if too long for free API
+    truncated = False
+    if len(text) > MAX_TEXT_LENGTH:
+        text = text[:MAX_TEXT_LENGTH]
+        truncated = True
+
     params = {
         'text': text,
         'language': lt_lang,
     }
-    # If language might not be supported, use auto-detect
-    if lang == 'bg':
-        params['language'] = 'auto'
 
     try:
         resp = requests.post(LANGUAGETOOL_API, data=params, timeout=30)
+        if resp.status_code == 400:
+            # Try with auto-detect if specific language fails
+            params['language'] = 'auto'
+            resp = requests.post(LANGUAGETOOL_API, data=params, timeout=30)
         resp.raise_for_status()
         result = resp.json()
     except Exception as e:
@@ -83,4 +116,5 @@ def spellcheck(text, lang='cz'):
     return {
         'language': result.get('language', {}).get('name', lt_lang),
         'matches': matches,
+        'truncated': truncated,
     }
