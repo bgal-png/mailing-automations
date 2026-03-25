@@ -1,27 +1,52 @@
+import os
 import re
 import requests
 from html.parser import HTMLParser
 
-LANG_CODES = {
-    'cz': 'sk-SK',  # Czech not supported by LanguageTool, Slovak is closest
+# LanguageTool config (DE, ES, GR)
+LANG_CODES_LT = {
     'de': 'de-DE',
     'es': 'es-ES',
-    'bg': 'auto',  # Bulgarian not supported, use auto-detect
     'gr': 'el-GR',
 }
 
+# Hunspell config (CZ, BG)
+LANG_CODES_HUNSPELL = {
+    'cz': 'cs_CZ',
+    'bg': 'bg_BG',
+}
+
 LANG_SUPPORTED = {
-    'cz': False,
+    'cz': True,
     'de': True,
     'es': True,
-    'bg': False,
+    'bg': True,
     'gr': True,
 }
 
-# LanguageTool free API limit is ~20KB
-MAX_TEXT_LENGTH = 20000
+LANG_ENGINE = {
+    'cz': 'Hunspell',
+    'de': 'LanguageTool',
+    'es': 'LanguageTool',
+    'bg': 'Hunspell',
+    'gr': 'LanguageTool',
+}
 
+MAX_TEXT_LENGTH = 20000
 LANGUAGETOOL_API = 'https://api.languagetool.org/v2/check'
+DICTIONARIES_DIR = os.path.join(os.path.dirname(__file__), 'dictionaries')
+
+# Cache loaded dictionaries
+_hunspell_dicts = {}
+
+
+def _get_hunspell_dict(lang):
+    if lang not in _hunspell_dicts:
+        from spylls.hunspell import Dictionary
+        dict_code = LANG_CODES_HUNSPELL[lang]
+        path = os.path.join(DICTIONARIES_DIR, dict_code)
+        _hunspell_dicts[lang] = Dictionary.from_files(path)
+    return _hunspell_dicts[lang]
 
 
 class HTMLTextExtractor(HTMLParser):
@@ -58,7 +83,6 @@ def fetch_text_from_url(url):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
     }
     resp = requests.get(url, headers=headers, timeout=15)
     resp.raise_for_status()
@@ -66,37 +90,73 @@ def fetch_text_from_url(url):
 
 
 def clean_text(text):
-    """Clean pasted text: remove HTML entities, excessive whitespace, non-printable chars."""
-    # Decode common HTML entities
     text = text.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
-    # Remove any remaining HTML tags that might have been pasted
     text = re.sub(r'<[^>]+>', ' ', text)
-    # Remove URLs (spell checkers choke on these)
     text = re.sub(r'https?://\S+', '', text)
-    # Remove email addresses
     text = re.sub(r'\S+@\S+\.\S+', '', text)
-    # Normalize whitespace
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 
-def spellcheck(text, lang='cz'):
-    lt_lang = LANG_CODES.get(lang, 'auto')
+def _spellcheck_hunspell(text, lang):
+    """Spell check using Hunspell (for CZ and BG)."""
+    d = _get_hunspell_dict(lang)
 
-    # Clean the text first
-    text = clean_text(text)
+    # Split into words, keeping track of positions
+    matches = []
+    # Find all word tokens with their positions
+    for m in re.finditer(r'[^\s\.,;:!?\(\)\[\]\{\}"\'«»„"…–—/\d]+', text):
+        word = m.group()
+        offset = m.start()
 
-    if not text.strip():
-        return {'error': 'No text to check after cleaning.', 'matches': []}
+        # Skip very short words, numbers, codes
+        if len(word) <= 1:
+            continue
+        # Skip words that look like codes or abbreviations (all caps, mixed with digits)
+        if word.isupper() and len(word) <= 5:
+            continue
 
-    # Truncate if too long for free API
+        if not d.lookup(word):
+            # Get suggestions (limit to avoid slowness)
+            suggestions = []
+            try:
+                for i, s in enumerate(d.suggest(word)):
+                    suggestions.append(s)
+                    if i >= 4:
+                        break
+            except Exception:
+                pass
+
+            matches.append({
+                'message': f'Possible spelling mistake: "{word}"',
+                'short_message': 'Spelling',
+                'word': word,
+                'offset': offset,
+                'length': len(word),
+                'replacements': suggestions,
+                'rule': 'HUNSPELL_SPELL',
+                'category': 'TYPOS',
+            })
+
+    return {
+        'language': f'{"Czech" if lang == "cz" else "Bulgarian"} (Hunspell)',
+        'detected_code': LANG_CODES_HUNSPELL[lang],
+        'requested_lang': LANG_CODES_HUNSPELL[lang],
+        'engine': 'Hunspell',
+        'matches': matches,
+        'truncated': False,
+    }
+
+
+def _spellcheck_languagetool(text, lang):
+    """Spell check using LanguageTool API (for DE, ES, GR)."""
+    lt_lang = LANG_CODES_LT.get(lang, 'auto')
+
     truncated = False
     if len(text) > MAX_TEXT_LENGTH:
         text = text[:MAX_TEXT_LENGTH]
         truncated = True
 
-    # Force the language — never fall back to auto (except BG)
-    # LanguageTool auto-detect confuses Czech with Slovak
     params = {
         'text': text,
         'language': lt_lang,
@@ -106,7 +166,6 @@ def spellcheck(text, lang='cz'):
     try:
         resp = requests.post(LANGUAGETOOL_API, data=params, timeout=30)
         if resp.status_code == 400:
-            # Return the actual error for debugging
             try:
                 error_detail = resp.json().get('message', resp.text[:200])
             except Exception:
@@ -114,8 +173,6 @@ def spellcheck(text, lang='cz'):
             return {'error': f'API rejected request: {error_detail}', 'matches': []}
         resp.raise_for_status()
         result = resp.json()
-    except requests.exceptions.HTTPError as e:
-        return {'error': str(e), 'matches': []}
     except Exception as e:
         return {'error': str(e), 'matches': []}
 
@@ -137,12 +194,24 @@ def spellcheck(text, lang='cz'):
     lang_info = result.get('language', {})
     detected_name = lang_info.get('name', lt_lang)
     detected_code = lang_info.get('detectedLanguage', {}).get('code', lang_info.get('code', ''))
-    requested_lang = lt_lang
 
     return {
         'language': detected_name,
         'detected_code': detected_code,
-        'requested_lang': requested_lang,
+        'requested_lang': lt_lang,
+        'engine': 'LanguageTool',
         'matches': matches,
         'truncated': truncated,
     }
+
+
+def spellcheck(text, lang='cz'):
+    text = clean_text(text)
+
+    if not text.strip():
+        return {'error': 'No text to check after cleaning.', 'matches': []}
+
+    if lang in LANG_CODES_HUNSPELL:
+        return _spellcheck_hunspell(text, lang)
+    else:
+        return _spellcheck_languagetool(text, lang)

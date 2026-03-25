@@ -5,7 +5,7 @@ import io
 import os
 from datetime import date
 from generator import parse_campaigns, get_campaign_data, generate_all, slugify, LANG_CONFIG
-from spellcheck import spellcheck, fetch_text_from_url, extract_text_from_html, LANG_SUPPORTED
+from spellcheck import spellcheck, fetch_text_from_url, extract_text_from_html, LANG_SUPPORTED, LANG_ENGINE
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 
@@ -165,19 +165,16 @@ with tab_generator:
 # ============================================================
 with tab_spellcheck:
     st.subheader('Campaign Spell Checker')
-    st.caption('Check spelling and grammar across CZ, DE, ES, BG, GR using LanguageTool')
+    st.caption('CZ & BG use Hunspell (spelling) · DE, ES & GR use LanguageTool (spelling + grammar)')
 
-    LANG_LABELS = {'de': 'German', 'es': 'Spanish', 'gr': 'Greek', 'cz': 'Czech (using Slovak)', 'bg': 'Bulgarian (auto-detect)'}
+    LANG_LABELS = {'cz': 'Czech', 'de': 'German', 'es': 'Spanish', 'bg': 'Bulgarian', 'gr': 'Greek'}
 
     check_lang = st.selectbox(
         'Language',
         options=list(LANG_LABELS.keys()),
-        format_func=lambda x: f'{x.upper()} — {LANG_LABELS[x]}' + ('' if LANG_SUPPORTED.get(x) else ' ⚠️'),
+        format_func=lambda x: f'{x.upper()} — {LANG_LABELS[x]} ({LANG_ENGINE[x]})',
         key='spellcheck_lang'
     )
-
-    if not LANG_SUPPORTED.get(check_lang):
-        st.warning(f'LanguageTool does not fully support this language. Results may be less accurate.')
 
     st.info('**How to use:** Open the rendered email in your browser → select all text (Ctrl+A) → copy (Ctrl+C) → paste below (Ctrl+V)')
 
@@ -196,16 +193,15 @@ with tab_spellcheck:
                 result = spellcheck(text_to_check, check_lang)
 
             if 'error' in result:
-                st.error(f'LanguageTool API error: {result["error"]}')
+                st.error(f'Spell check error: {result["error"]}')
             else:
                 matches = result['matches']
                 detected_lang = result.get('language', '')
-                detected_code = result.get('detected_code', '')
-                requested = result.get('requested_lang', '')
+                engine = result.get('engine', '')
                 if result.get('truncated'):
                     st.info('Text was truncated to 20,000 characters (free API limit).')
 
-                st.caption(f'Requested: `{requested}` | Checked as: **{detected_lang}** (`{detected_code}`)')
+                st.caption(f'Engine: **{engine}** | Checked as: **{detected_lang}**')
 
                 if not matches:
                     st.success(f'No issues found!')
