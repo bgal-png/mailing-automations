@@ -279,18 +279,19 @@ def slugify(name):
     return name
 
 
-def generate_all(templates, campaign_data, end_date, discount_code, banner_links, countdown_url, campaign_name):
+def generate_all(templates, campaign_data, end_date, discount_code, banner_links, countdown_urls, campaign_name):
     files = {}
     slug = slugify(campaign_name)
     for lang in LANG_CONFIG:
         template_html = templates[lang]
         link = banner_links.get(lang, '')
+        lang_countdown = countdown_urls.get(lang, '') if isinstance(countdown_urls, dict) else countdown_urls
         for email_type in ['starter', 'reminder', 'lastchance']:
             filename = f'{lang}_{slug}_{email_type}.txt'
             html = generate_email(
                 template_html, lang, email_type,
                 campaign_data, end_date, discount_code,
-                link, countdown_url if email_type == 'lastchance' else ''
+                link, lang_countdown if email_type == 'lastchance' else ''
             )
             files[filename] = html
     return files

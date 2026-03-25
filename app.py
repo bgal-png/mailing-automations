@@ -82,10 +82,7 @@ if uploaded_file:
             label_visibility='collapsed'
         )
 
-    countdown_url = st.text_input(
-        'Countdown timer image URL (for Last Chance)',
-        placeholder='https://your-countdown.vercel.app/api/countdown?end=...',
-    )
+    COUNTDOWN_BASE_URL = 'https://countdown-timer-psi-fawn.vercel.app/api/countdown'
 
     # Step 4: Generate
     if st.button('Generate campaign emails', type='primary'):
@@ -99,9 +96,12 @@ if uploaded_file:
             st.stop()
 
         with st.spinner('Generating 15 email files...'):
+            countdown_urls = {}
+            for lang in LANG_CONFIG:
+                countdown_urls[lang] = f'{COUNTDOWN_BASE_URL}?end={end_date.isoformat()}T23:59:59&lang={lang}'
             files = generate_all(
                 templates, campaign_data, end_date,
-                discount_code, banner_links, countdown_url,
+                discount_code, banner_links, countdown_urls,
                 selected_name
             )
 
