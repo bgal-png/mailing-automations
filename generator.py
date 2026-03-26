@@ -239,62 +239,18 @@ def generate_email(template_html, lang, email_type, campaign_data, end_date, dis
 
     # 7. Countdown timer (Last Chance only)
     if email_type == 'lastchance' and countdown_url:
-        countdown_block = (
-            '<!--[if mso | IE]>\n'
-            '    <table align="center" border="0" cellpadding="0" cellspacing="0" class=""\n'
-            '    style="width:600px;" width="600">\n'
-            '      <tr>\n'
-            '        <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n'
-            '        <![endif]-->\n'
-            '        <div style="background:#FFFFFF;background-color:#FFFFFF;margin:0px auto;max-width:600px;">\n'
-            '          <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"\n'
-            '          style="background:#FFFFFF;background-color:#FFFFFF;width:100%;">\n'
-            '            <tbody>\n'
-            '              <tr>\n'
-            '                <td style="direction:ltr;font-size:0px;padding:0px 0px 0px 0px;text-align:center;">\n'
-            '                  <!--[if mso | IE]>\n'
-            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n'
-            '                      <tr>\n'
-            '                        <td class="" style="vertical-align:top;width:600px;">\n'
-            '                        <![endif]-->\n'
-            '                        <div class="mj-column-per-100 outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">\n'
-            '                          <table border="0" cellpadding="0" cellspacing="0" role="presentation"\n'
-            '                          style="vertical-align:top;" width="100%">\n'
-            '                            <tbody>\n'
-            '                              <tr>\n'
-            '                                <td align="center" style="font-size:0px;padding:0px;word-break:break-word;line-height:0;">\n'
-            f'                                  <img style="display:block;margin:0 auto;border:0;outline:none;" src="{countdown_url}"\n'
-            '                                  width="570" height="95">\n'
-            '                                </td>\n'
-            '                              </tr>\n'
-            '                            </tbody>\n'
-            '                          </table>\n'
-            '                        </div>\n'
-            '                        <!--[if mso | IE]>\n'
-            '                        </td>\n'
-            '                      </tr>\n'
-            '                    </table>\n'
-            '                  <![endif]-->\n'
-            '                </td>\n'
-            '              </tr>\n'
-            '            </tbody>\n'
-            '          </table>\n'
-            '        </div>\n'
-            '        <!--[if mso | IE]>\n'
-            '        </td>\n'
-            '      </tr>\n'
-            '    </table>\n'
-            '  <![endif]-->\n'
+        countdown_img = (
+            f'<br><img style="display:block;margin:10px auto 0 auto;border:0;outline:none;" '
+            f'src="{countdown_url}" width="570" height="95">'
         )
-        # Insert after the body text block (after the text div)
-        # Find the text content area and insert after it
+        # Insert right after the body text, inside the same span
         text_key = 'text_lc'
         body_text = campaign_data.get(text_key, {}).get(lang, '')
         if body_text:
             body_text_html = body_text.replace('\n', '<br>')
             insert_marker = f'{body_text_html}</span>'
             if insert_marker in html:
-                html = html.replace(insert_marker, insert_marker + countdown_block)
+                html = html.replace(insert_marker, body_text_html + countdown_img + '</span>')
             else:
                 # Fallback: insert before the CTA button area
                 idx = html.find('#FBA157')
