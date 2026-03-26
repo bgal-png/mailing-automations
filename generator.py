@@ -104,7 +104,7 @@ def format_date_nbsp(date_obj):
     return f'{date_obj.day}.&nbsp;{date_obj.month}.&nbsp;{date_obj.year}'
 
 
-def generate_email(template_html, lang, email_type, campaign_data, end_date, discount_code, banner_link, countdown_url=''):
+def generate_email(template_html, lang, email_type, campaign_data, end_date, discount_code, banner_link, countdown_url='', banner_image_url=''):
     html = template_html
     cfg = LANG_CONFIG[lang]
 
@@ -144,6 +144,9 @@ def generate_email(template_html, lang, email_type, campaign_data, end_date, dis
     hero_match = re.search(hero_pattern, html)
     if hero_match:
         full_match = hero_match.group(0)
+        # Replace banner image src if provided
+        if banner_image_url:
+            full_match = re.sub(r'src="[^"]*"', f'src="{banner_image_url}"', full_match)
         # Add alt attribute
         if 'alt="' not in full_match:
             new_img = full_match.replace('height="auto"', f'height="auto" alt="{banner_text}"')
@@ -279,19 +282,23 @@ def slugify(name):
     return name
 
 
-def generate_all(templates, campaign_data, end_date, discount_code, banner_links, countdown_urls, campaign_name):
+def generate_all(templates, campaign_data, end_date, discount_code, banner_links, countdown_urls, campaign_name, banner_image_urls=None):
     files = {}
     slug = slugify(campaign_name)
+    if banner_image_urls is None:
+        banner_image_urls = {}
     for lang in LANG_CONFIG:
         template_html = templates[lang]
         link = banner_links.get(lang, '')
         lang_countdown = countdown_urls.get(lang, '') if isinstance(countdown_urls, dict) else countdown_urls
+        lang_banner_img = banner_image_urls.get(lang, '')
         for email_type in ['starter', 'reminder', 'lastchance']:
             filename = f'{lang}_{slug}_{email_type}.txt'
             html = generate_email(
                 template_html, lang, email_type,
                 campaign_data, end_date, discount_code,
-                link, lang_countdown if email_type == 'lastchance' else ''
+                link, lang_countdown if email_type == 'lastchance' else '',
+                banner_image_url=lang_banner_img
             )
             files[filename] = html
     return files

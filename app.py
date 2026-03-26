@@ -114,6 +114,48 @@ with tab_generator:
         else:
             banner_links[lang] = ''
 
+    st.subheader('Banner image')
+    st.caption('Paste the filename (without language prefix). The app builds the full GCS URL per language.')
+
+    GCS_BUCKETS = {
+        'cz': 'cockyonlinecz33256',
+        'de': 'deikl22921',
+        'es': 'lentesdecontactoes33261',
+        'bg': 'leshtibg33262',
+        'gr': 'matakigr34249',
+    }
+    LANG_PREFIXES = {
+        'cz': 'cz',
+        'de': 'de',
+        'es': 'es',
+        'bg': 'bg',
+        'gr': 'gr',
+    }
+
+    bcol1, bcol2 = st.columns([3, 1])
+    with bcol1:
+        banner_filename = st.text_input(
+            'Banner filename (without lang prefix)',
+            placeholder='eye-drops-discount-23112023.jpg',
+            key='banner_filename'
+        )
+    with bcol2:
+        de_prefix = st.selectbox('DE prefix', ['de', 'at'], key='de_prefix')
+
+    banner_image_urls = {}
+    if banner_filename:
+        fname = banner_filename.strip()
+        LANG_PREFIXES['de'] = de_prefix
+        for lang in LANG_CONFIG:
+            prefix = LANG_PREFIXES[lang]
+            bucket = GCS_BUCKETS[lang]
+            full_url = f'https://storage.googleapis.com/{bucket}/bannery/{prefix}-{fname}'
+            banner_image_urls[lang] = full_url
+
+        with st.expander('Banner URLs (preview)'):
+            for lang, url in banner_image_urls.items():
+                st.code(url, language=None)
+
     if st.button('Generate campaign emails', type='primary'):
         if not discount_code:
             st.error('Please enter a discount code.')
@@ -131,7 +173,7 @@ with tab_generator:
             files = generate_all(
                 templates, campaign_data, end_date,
                 discount_code, banner_links, countdown_urls,
-                selected['name']
+                selected['name'], banner_image_urls
             )
 
         st.success(f'Generated {len(files)} files!')
