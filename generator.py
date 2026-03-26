@@ -262,7 +262,7 @@ def generate_email(template_html, lang, email_type, campaign_data, end_date, dis
             '                          style="vertical-align:top;" width="100%">\n'
             '                            <tbody>\n'
             '                              <tr>\n'
-            '                                <td align="left" style="font-size:0px;padding:0px 0px 20px 0px;word-break:break-word;">\n'
+            '                                <td align="left" style="font-size:0px;padding:0px 0px 0px 0px;word-break:break-word;">\n'
             '                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#000000;">\n'
             '                                    <p style="font-family: Helvetica, sans-serif; font-size: 14px;">\n'
             f'                                      <img style="display: block; margin-left: auto; margin-right: auto;" src="{countdown_url}"\n'
