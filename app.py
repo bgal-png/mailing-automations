@@ -114,47 +114,53 @@ with tab_generator:
         else:
             banner_links[lang] = ''
 
-    st.subheader('Banner image')
-    st.caption('Paste the filename (without language prefix). The app builds the full GCS URL per language.')
+    st.subheader('Banner images')
+    st.caption('Paste full filenames (with language prefix), one per line. The app maps each to the correct GCS bucket.')
 
     GCS_BUCKETS = {
         'cz': 'cockyonlinecz33256',
         'de': 'deikl22921',
+        'at': 'deikl22921',
         'es': 'lentesdecontactoes33261',
         'bg': 'leshtibg33262',
         'gr': 'matakigr34249',
     }
-    LANG_PREFIXES = {
-        'cz': 'cz',
-        'de': 'de',
-        'es': 'es',
-        'bg': 'bg',
-        'gr': 'gr',
+    KNOWN_PREFIXES = {'cz', 'de', 'at', 'es', 'bg', 'gr'}
+    # Map prefix to lang key used in LANG_CONFIG
+    PREFIX_TO_LANG = {
+        'cz': 'cz', 'de': 'de', 'at': 'de',
+        'es': 'es', 'bg': 'bg', 'gr': 'gr',
     }
 
-    bcol1, bcol2 = st.columns([3, 1])
-    with bcol1:
-        banner_filename = st.text_input(
-            'Banner filename (without lang prefix)',
-            placeholder='eye-drops-discount-23112023.jpg',
-            key='banner_filename'
-        )
-    with bcol2:
-        de_prefix = st.selectbox('DE prefix', ['de', 'at'], key='de_prefix')
+    banner_input = st.text_area(
+        'Banner filenames (one per line)',
+        height=150,
+        placeholder='cz-eye-drops-discount-23112023.jpg\nde-eye-drops-discount-23112023.jpg\nes-eye-drops-discount-23112023.jpg\nbg-eye-drops-discount-23112023.jpg\ngr-eye-drops-discount-23112023.jpg',
+        key='banner_filenames'
+    )
 
     banner_image_urls = {}
-    if banner_filename:
-        fname = banner_filename.strip()
-        LANG_PREFIXES['de'] = de_prefix
-        for lang in LANG_CONFIG:
-            prefix = LANG_PREFIXES[lang]
-            bucket = GCS_BUCKETS[lang]
-            full_url = f'https://storage.googleapis.com/{bucket}/bannery/{prefix}-{fname}'
-            banner_image_urls[lang] = full_url
+    if banner_input.strip():
+        for line in banner_input.strip().splitlines():
+            fname = line.strip()
+            if not fname:
+                continue
+            # Extract prefix (everything before the first dash)
+            parts = fname.split('-', 1)
+            if len(parts) == 2 and parts[0].lower() in KNOWN_PREFIXES:
+                prefix = parts[0].lower()
+                lang = PREFIX_TO_LANG[prefix]
+                bucket = GCS_BUCKETS[prefix]
+                full_url = f'https://storage.googleapis.com/{bucket}/bannery/{fname}'
+                banner_image_urls[lang] = full_url
 
         with st.expander('Banner URLs (preview)'):
-            for lang, url in banner_image_urls.items():
-                st.code(url, language=None)
+            for lang in LANG_CONFIG:
+                if lang in banner_image_urls:
+                    st.markdown(f'**{lang.upper()}:** ✅')
+                    st.code(banner_image_urls[lang], language=None)
+                else:
+                    st.markdown(f'**{lang.upper()}:** ⚠️ No banner')
 
     if st.button('Generate campaign emails', type='primary'):
         if not discount_code:
