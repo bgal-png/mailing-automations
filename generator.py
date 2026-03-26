@@ -241,7 +241,7 @@ def generate_email(template_html, lang, email_type, campaign_data, end_date, dis
     if email_type == 'lastchance' and countdown_url:
         countdown_img = (
             f'<br><img style="display:block;margin:10px auto 0 auto;border:0;outline:none;" '
-            f'src="{countdown_url}" width="570" height="95">'
+            f'src="{countdown_url}" width="570" height="70">'
         )
         # Insert right after the body text, inside the same span
         text_key = 'text_lc'
