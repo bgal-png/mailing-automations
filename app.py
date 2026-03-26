@@ -186,7 +186,7 @@ with tab_generator:
         with st.spinner('Generating 15 email files...'):
             countdown_urls = {}
             for lang in LANG_CONFIG:
-                countdown_urls[lang] = f'{COUNTDOWN_BASE_URL}?end={end_date.isoformat()}T23:59:59&lang={lang}'
+                countdown_urls[lang] = f'{COUNTDOWN_BASE_URL}?end={end_date.isoformat()}T23:59:59&amp;lang={lang}'
             files = generate_all(
                 templates, campaign_data, end_date,
                 discount_code, banner_links, countdown_urls,
