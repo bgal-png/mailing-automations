@@ -240,9 +240,8 @@ def generate_email(template_html, lang, email_type, campaign_data, end_date, dis
     # 7. Countdown timer (Last Chance only)
     if email_type == 'lastchance' and countdown_url:
         countdown_block = (
-            f'<p style="text-align: center;"><span style="font-size: 14px;">'
-            f'<img style="display: block; margin-left: auto; margin-right: auto;" '
-            f'src="{countdown_url}" width="520px"></span></p>'
+            f'<p><img style="display: block; margin-left: auto; margin-right: auto;" '
+            f'src="{countdown_url}" width="320px"></p>'
         )
         # Insert after the body text block (after the text div)
         # Find the text content area and insert after it
