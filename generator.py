@@ -242,7 +242,7 @@ def generate_email(template_html, lang, email_type, campaign_data, end_date, dis
         countdown_block = (
             f'<p style="text-align: center;"><span style="font-size: 14px;">'
             f'<img style="display: block; margin-left: auto; margin-right: auto;" '
-            f'src="{countdown_url}" width="320px"></span></p>'
+            f'src="{countdown_url}" width="520px"></span></p>'
         )
         # Insert after the body text block (after the text div)
         # Find the text content area and insert after it
