@@ -184,6 +184,16 @@ with tab_generator:
                 selected['name'], banner_image_urls
             )
 
+        # Store in session state so they persist across reruns
+        st.session_state['generated_files'] = files
+        st.session_state['generated_name'] = selected['name']
+
+    # Display results from session state (persists across downloads)
+    if 'generated_files' in st.session_state and st.session_state['generated_files']:
+        files = st.session_state['generated_files']
+        campaign_name = st.session_state['generated_name']
+        folder = slugify(campaign_name)
+
         st.success(f'Generated {len(files)} files!')
 
         with st.expander('Preview generated files'):
@@ -196,13 +206,10 @@ with tab_generator:
                     st.warning('Unreplaced placeholders detected!')
                 st.text(f'Size: {len(content):,} chars')
 
-        folder = slugify(selected['name'])
-
         # Individual ZIP per file
         st.markdown('**Download individual files:**')
         cols_dl = st.columns(5)
         for filename, content in sorted(files.items()):
-            # Determine language column
             lang_prefix = filename.split('_')[0]
             lang_idx = list(LANG_CONFIG.keys()).index(lang_prefix) if lang_prefix in LANG_CONFIG else 0
 
@@ -211,7 +218,6 @@ with tab_generator:
                 zf.writestr(filename, content)
             zip_buf.seek(0)
 
-            # Short label: type only (starter/reminder/lastchance)
             email_type = filename.rsplit('_', 1)[-1].replace('.html', '')
             cols_dl[lang_idx].download_button(
                 label=f'{lang_prefix.upper()} {email_type}',
@@ -221,7 +227,7 @@ with tab_generator:
                 key=f'dl_{filename}',
             )
 
-        # Also keep a "Download All" ZIP
+        # Download All ZIP
         st.markdown('---')
         all_zip = io.BytesIO()
         with zipfile.ZipFile(all_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
