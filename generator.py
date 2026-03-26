@@ -293,7 +293,7 @@ def generate_all(templates, campaign_data, end_date, discount_code, banner_links
         lang_countdown = countdown_urls.get(lang, '') if isinstance(countdown_urls, dict) else countdown_urls
         lang_banner_img = banner_image_urls.get(lang, '')
         for email_type in ['starter', 'reminder', 'lastchance']:
-            filename = f'{lang}_{slug}_{email_type}.txt'
+            filename = f'{lang}_{slug}_{email_type}.html'
             html = generate_email(
                 template_html, lang, email_type,
                 campaign_data, end_date, discount_code,

@@ -188,17 +188,43 @@ with tab_generator:
                     st.warning('Unreplaced placeholders detected!')
                 st.text(f'Size: {len(content):,} chars')
 
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-            folder = slugify(selected['name'])
+        folder = slugify(selected['name'])
+
+        # Individual ZIP per file
+        st.markdown('**Download individual files:**')
+        cols_dl = st.columns(5)
+        for filename, content in sorted(files.items()):
+            # Determine language column
+            lang_prefix = filename.split('_')[0]
+            lang_idx = list(LANG_CONFIG.keys()).index(lang_prefix) if lang_prefix in LANG_CONFIG else 0
+
+            zip_buf = io.BytesIO()
+            with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr(filename, content)
+            zip_buf.seek(0)
+
+            # Short label: type only (starter/reminder/lastchance)
+            email_type = filename.rsplit('_', 1)[-1].replace('.html', '')
+            cols_dl[lang_idx].download_button(
+                label=f'{lang_prefix.upper()} {email_type}',
+                data=zip_buf,
+                file_name=f'{filename.replace(".html", ".zip")}',
+                mime='application/zip',
+                key=f'dl_{filename}',
+            )
+
+        # Also keep a "Download All" ZIP
+        st.markdown('---')
+        all_zip = io.BytesIO()
+        with zipfile.ZipFile(all_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
             for filename, content in files.items():
                 zf.writestr(f'{folder}/{filename}', content)
-        zip_buffer.seek(0)
+        all_zip.seek(0)
 
         st.download_button(
-            label='Download ZIP',
-            data=zip_buffer,
-            file_name=f'{slugify(selected["name"])}.zip',
+            label='Download All (ZIP)',
+            data=all_zip,
+            file_name=f'{folder}.zip',
             mime='application/zip',
         )
 
