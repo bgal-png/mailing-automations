@@ -142,9 +142,11 @@ with tab_generator:
     banner_image_urls = {}
     if banner_input.strip():
         for line in banner_input.strip().splitlines():
-            fname = line.strip()
-            if not fname:
+            raw = line.strip().strip('"').strip("'")
+            if not raw:
                 continue
+            # Extract just the filename from full path
+            fname = raw.replace('\\', '/').split('/')[-1]
             # Extract prefix (everything before the first dash)
             parts = fname.split('-', 1)
             if len(parts) == 2 and parts[0].lower() in KNOWN_PREFIXES:
