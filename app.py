@@ -51,9 +51,18 @@ with tab_generator:
         st.info('Make sure the sheet is shared as "Anyone with the link can view".')
         st.stop()
 
-    if st.button('Refresh data from Google Sheets'):
-        load_google_sheet.clear()
-        st.rerun()
+    col_ref1, col_ref2 = st.columns(2)
+    with col_ref1:
+        if st.button('🔄 Refresh data from Google Sheets'):
+            load_google_sheet.clear()
+            st.rerun()
+    with col_ref2:
+        if st.button('🗑️ Clear all caches'):
+            load_templates.clear()
+            load_google_sheet.clear()
+            st.session_state.pop('generated_files', None)
+            st.session_state.pop('generated_name', None)
+            st.rerun()
 
     campaigns = parse_campaigns(df)
 
