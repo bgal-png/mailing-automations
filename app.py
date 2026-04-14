@@ -8,7 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from io import StringIO
 
-st.set_page_config(page_title="Email Campaign Reports", layout="wide")
+st.set_page_config(page_title="Email Campaign Reports Online Design", layout="wide")
 
 # ── Custom CSS — dark mode ───────────────────────────────────────────────────
 
@@ -730,7 +730,7 @@ def render_comparison():
 
 # ── Main layout ──────────────────────────────────────────────────────────────
 
-st.title("Email Campaign Reports")
+st.title("Email Campaign Reports Online Design")
 st.caption("Upload CSV exports from your email platform to analyze campaign performance across shops.")
 
 tab_names = ["Cross-Shop Comparison"] + list(SHOPS.keys())
