@@ -369,11 +369,29 @@ for tab, (shop_name, shop_cfg) in zip(tabs, SHOPS.items()):
         )
 
         if uploaded is not None:
-            df, error = parse_csv(uploaded)
+            df_all, error = parse_csv(uploaded)
             if error:
                 st.error(error)
             else:
-                st.success(f"Loaded **{len(df)}** campaigns from **{uploaded.name}**")
+                years = sorted(df_all["Sent at"].dt.year.unique())
+                year_options = ["All"] + [str(y) for y in years]
+                selected_year = st.radio(
+                    "Filter by year",
+                    year_options,
+                    horizontal=True,
+                    key=f"year_{shop_name}",
+                )
+
+                if selected_year == "All":
+                    df = df_all
+                else:
+                    df = df_all[df_all["Sent at"].dt.year == int(selected_year)].reset_index(drop=True)
+
+                st.success(
+                    f"Showing **{len(df)}** campaigns"
+                    + (f" for **{selected_year}**" if selected_year != "All" else "")
+                    + f" from **{uploaded.name}**"
+                )
                 render_kpis(df, symbol)
                 st.divider()
                 render_best_worst(df, symbol)
