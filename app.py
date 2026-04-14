@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -73,6 +74,15 @@ def parse_csv(uploaded_file):
     return df, None
 
 
+def base_campaign_name(title):
+    """Strip date prefix and suffixes (LC, R, etc.) to get the base campaign name."""
+    # Remove leading date prefix like "260412 " or "250706v"
+    name = re.sub(r"^\d{6}\s*v?\s*", "", title.strip())
+    # Remove trailing suffixes: (LC), LC, (R), R — with optional surrounding parens/spaces
+    name = re.sub(r"\s*\(?\s*(LC|R)\s*\)?\s*$", "", name, flags=re.IGNORECASE).strip()
+    return name.lower()
+
+
 def fmt_currency(value, symbol):
     """Format a number with currency symbol."""
     if value >= 1_000_000:
@@ -84,7 +94,8 @@ def fmt_currency(value, symbol):
 
 def render_kpis(df, symbol):
     """Render the top-level KPI metrics."""
-    total_campaigns = len(df)
+    total_sends = len(df)
+    total_campaigns = df["Campaign title"].apply(base_campaign_name).nunique()
     total_recipients = int(df["Recipients"].sum())
     total_sales = df["Sales"].sum()
     total_conversions = int(df["Conversions"].sum())
@@ -97,11 +108,12 @@ def render_kpis(df, symbol):
     avg_click_rate = (total_clicks / total_recipients * 100) if total_recipients else 0
     avg_conversion_rate = (total_conversions / total_recipients * 100) if total_recipients else 0
 
-    row1 = st.columns(4)
-    row1[0].metric("Total Campaigns", f"{total_campaigns}")
-    row1[1].metric("Total Emails Sent", f"{total_recipients:,}")
-    row1[2].metric("Total Sales", fmt_currency(total_sales, symbol))
-    row1[3].metric("Total Conversions", f"{total_conversions:,}")
+    row1 = st.columns(5)
+    row1[0].metric("Campaigns", f"{total_campaigns}")
+    row1[1].metric("Total Sends", f"{total_sends}")
+    row1[2].metric("Total Recipients", f"{total_recipients:,}")
+    row1[3].metric("Total Sales", fmt_currency(total_sales, symbol))
+    row1[4].metric("Total Conversions", f"{total_conversions:,}")
 
     row2 = st.columns(4)
     row2[0].metric("Avg Open Rate", f"{avg_open_rate:.2f}%")
