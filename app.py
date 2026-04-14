@@ -476,6 +476,30 @@ def render_comparison():
     shop_names = list(loaded.keys())
     colors = [SHOP_COLORS[n] for n in shop_names]
 
+    # --- Year filter ---
+    all_years = set()
+    for df in loaded.values():
+        all_years.update(df["Sent at"].dt.year.unique())
+    year_options = ["All"] + [str(y) for y in sorted(all_years)]
+    selected_year = st.radio(
+        "Filter by year",
+        year_options,
+        horizontal=True,
+        key="cmp_year",
+    )
+
+    if selected_year != "All":
+        yr = int(selected_year)
+        loaded = {name: df[df["Sent at"].dt.year == yr].reset_index(drop=True)
+                  for name, df in loaded.items()}
+        # Remove shops that have no data for this year
+        loaded = {name: df for name, df in loaded.items() if len(df) > 0}
+        shop_names = list(loaded.keys())
+        colors = [SHOP_COLORS[n] for n in shop_names]
+        if len(loaded) < 2:
+            st.warning(f"Only {len(loaded)} shop(s) have data for {selected_year}. Need at least 2 to compare.")
+            return
+
     # --- Summary table ---
     rates = fetch_rates_to_czk()
 
