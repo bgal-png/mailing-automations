@@ -220,6 +220,8 @@ def compute_shop_summary(df):
     total_opens = int(df["Opens"].sum())
     total_clicks = int(df["Clicks"].sum())
     total_conversions = int(df["Conversions"].sum())
+    total_unsubs = int(df["Unsubscribes"].sum())
+    total_bounces = int(df["Bounces"].sum())
     return {
         "Campaigns": df["Campaign title"].apply(base_campaign_name).nunique(),
         "Total Sends": len(df),
@@ -229,8 +231,10 @@ def compute_shop_summary(df):
         "Avg Open Rate (%)": round(total_opens / total_recipients * 100, 2) if total_recipients else 0,
         "Avg Click Rate (%)": round(total_clicks / total_recipients * 100, 2) if total_recipients else 0,
         "Avg Conversion Rate (%)": round(total_conversions / total_recipients * 100, 3) if total_recipients else 0,
-        "Total Unsubscribes": int(df["Unsubscribes"].sum()),
-        "Total Bounces": int(df["Bounces"].sum()),
+        "Total Unsubscribes": total_unsubs,
+        "Total Bounces": total_bounces,
+        "Unsub Rate (%)": round(total_unsubs / total_recipients * 100, 3) if total_recipients else 0,
+        "Bounce Rate (%)": round(total_bounces / total_recipients * 100, 3) if total_recipients else 0,
     }
 
 
@@ -494,6 +498,9 @@ def render_comparison():
             "Click Rate (%)": s["Avg Click Rate (%)"],
             "Conv. Rate (%)": s["Avg Conversion Rate (%)"],
             "Unsubscribes": s["Total Unsubscribes"],
+            "Unsub Rate (%)": s["Unsub Rate (%)"],
+            "Bounces": s["Total Bounces"],
+            "Bounce Rate (%)": s["Bounce Rate (%)"],
         })
     summary_df = pd.DataFrame(rows)
     st.dataframe(
@@ -547,6 +554,44 @@ def render_comparison():
         _apply_layout(fig, yaxis_title="Conversions", title=dict(text="Total Conversions", font=dict(size=14, color="rgba(255,255,255,0.8)")))
         fig.update_layout(height=350)
         st.plotly_chart(fig, use_container_width=True, key="cmp_conversions")
+
+    # --- Unsubscribes & Bounces ---
+    st.markdown('<div class="section-header">Unsubscribes & Bounces</div>', unsafe_allow_html=True)
+    col6, col7 = st.columns(2)
+
+    with col6:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=summary_df["Shop"], y=summary_df["Unsubscribes"], name="Unsubscribes",
+            marker_color="#E8451E",
+            text=summary_df["Unsubscribes"], textposition="outside",
+        ))
+        fig.add_trace(go.Bar(
+            x=summary_df["Shop"], y=summary_df["Bounces"], name="Bounces",
+            marker_color="#FFB627",
+            text=summary_df["Bounces"], textposition="outside",
+        ))
+        _apply_layout(fig, barmode="group", yaxis_title="Count",
+                      title=dict(text="Total Unsubscribes & Bounces", font=dict(size=14, color="rgba(255,255,255,0.8)")))
+        fig.update_layout(height=380)
+        st.plotly_chart(fig, use_container_width=True, key="cmp_unsub_bounce_total")
+
+    with col7:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=summary_df["Shop"], y=summary_df["Unsub Rate (%)"], name="Unsub Rate",
+            marker_color="#E8451E",
+            text=summary_df["Unsub Rate (%)"].apply(lambda v: f"{v:.3f}%"), textposition="outside",
+        ))
+        fig.add_trace(go.Bar(
+            x=summary_df["Shop"], y=summary_df["Bounce Rate (%)"], name="Bounce Rate",
+            marker_color="#FFB627",
+            text=summary_df["Bounce Rate (%)"].apply(lambda v: f"{v:.3f}%"), textposition="outside",
+        ))
+        _apply_layout(fig, barmode="group", yaxis_title="%",
+                      title=dict(text="Unsub & Bounce Rate", font=dict(size=14, color="rgba(255,255,255,0.8)")))
+        fig.update_layout(height=380)
+        st.plotly_chart(fig, use_container_width=True, key="cmp_unsub_bounce_rate")
 
     # --- Total sales converted to CZK ---
     rate_lines = []
@@ -624,6 +669,39 @@ def render_comparison():
         ))
     _apply_layout(fig, yaxis_title="Click Rate (%)")
     st.plotly_chart(fig, use_container_width=True, key="cmp_monthly_cr")
+
+    # --- Monthly unsubscribe & bounce trends overlaid ---
+    st.markdown('<div class="section-header">Monthly Unsubscribe Trend</div>', unsafe_allow_html=True)
+    fig = go.Figure()
+    for name in shop_names:
+        df_m = loaded[name].copy()
+        df_m["Month"] = df_m["Sent at"].dt.to_period("M").astype(str)
+        monthly = df_m.groupby("Month").agg(
+            Unsubs=("Unsubscribes", "sum"), Recipients=("Recipients", "sum")
+        ).reset_index()
+        monthly["Unsub Rate (%)"] = (monthly["Unsubs"] / monthly["Recipients"] * 100).round(3)
+        fig.add_trace(go.Scatter(
+            x=monthly["Month"], y=monthly["Unsub Rate (%)"], name=name,
+            mode="lines+markers", line=dict(color=SHOP_COLORS[name], width=2),
+        ))
+    _apply_layout(fig, yaxis_title="Unsub Rate (%)")
+    st.plotly_chart(fig, use_container_width=True, key="cmp_monthly_unsub")
+
+    st.markdown('<div class="section-header">Monthly Bounce Trend</div>', unsafe_allow_html=True)
+    fig = go.Figure()
+    for name in shop_names:
+        df_m = loaded[name].copy()
+        df_m["Month"] = df_m["Sent at"].dt.to_period("M").astype(str)
+        monthly = df_m.groupby("Month").agg(
+            Bounces=("Bounces", "sum"), Recipients=("Recipients", "sum")
+        ).reset_index()
+        monthly["Bounce Rate (%)"] = (monthly["Bounces"] / monthly["Recipients"] * 100).round(3)
+        fig.add_trace(go.Scatter(
+            x=monthly["Month"], y=monthly["Bounce Rate (%)"], name=name,
+            mode="lines+markers", line=dict(color=SHOP_COLORS[name], width=2),
+        ))
+    _apply_layout(fig, yaxis_title="Bounce Rate (%)")
+    st.plotly_chart(fig, use_container_width=True, key="cmp_monthly_bounce")
 
 
 # ── Main layout ──────────────────────────────────────────────────────────────
