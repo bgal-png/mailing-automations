@@ -8,7 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from io import StringIO
 
-st.set_page_config(page_title="Email Campaign Reports Online Design", layout="wide")
+st.set_page_config(page_title="Email Campaign Reports Blue Design", layout="wide")
 
 # ── Custom CSS — dark mode ───────────────────────────────────────────────────
 
@@ -99,21 +99,19 @@ st.markdown("""
 # ── Constants ────────────────────────────────────────────────────────────────
 
 SHOPS = {
-    "Čočky-online.cz": {"currency": "CZK", "symbol": "Kč"},
-    "Ihre-kontaktlinsen.de": {"currency": "EUR", "symbol": "€"},
-    "Lentes-de-contacto.es": {"currency": "EUR", "symbol": "€"},
-    "Leshti.bg": {"currency": "BGN", "symbol": "лв"},
-    "Mataki.gr": {"currency": "EUR", "symbol": "€"},
-    "Kontaktni.cz": {"currency": "CZK", "symbol": "Kč"},
+    "Čočky-kontaktni.cz": {"currency": "CZK", "symbol": "Kč"},
+    "Šošovky-kontaktne.sk": {"currency": "EUR", "symbol": "€"},
+    "Lentes-shop.es": {"currency": "EUR", "symbol": "€"},
+    "Kontaktlinsen-billig.at": {"currency": "EUR", "symbol": "€"},
+    "Lencsebolt.hu": {"currency": "HUF", "symbol": "Ft"},
 }
 
 SHOP_COLORS = {
-    "Čočky-online.cz": "#2E86AB",
-    "Ihre-kontaktlinsen.de": "#A23B72",
-    "Lentes-de-contacto.es": "#F18F01",
-    "Leshti.bg": "#56A764",
-    "Mataki.gr": "#E8451E",
-    "Kontaktni.cz": "#7B2D8E",
+    "Čočky-kontaktni.cz": "#2E86AB",
+    "Šošovky-kontaktne.sk": "#A23B72",
+    "Lentes-shop.es": "#F18F01",
+    "Kontaktlinsen-billig.at": "#56A764",
+    "Lencsebolt.hu": "#E8451E",
 }
 
 EXPECTED_COLUMNS = [
@@ -137,8 +135,8 @@ PLOTLY_LAYOUT = dict(
 
 # ── Session state ────────────────────────────────────────────────────────────
 
-if "shop_data" not in st.session_state:
-    st.session_state.shop_data = {}
+if "shop_data_blue" not in st.session_state:
+    st.session_state.shop_data_blue_blue = {}
 
 
 # ── Exchange rates ───────────────────────────────────────────────────────────
@@ -459,7 +457,7 @@ def render_monthly_summary(df, symbol, shop_key):
 
 def render_comparison():
     """Render the cross-shop comparison tab."""
-    loaded = {name: data for name, data in st.session_state.shop_data.items() if data is not None}
+    loaded = {name: data for name, data in st.session_state.shop_data_blue.items() if data is not None}
 
     if len(loaded) < 2:
         st.markdown(
@@ -732,7 +730,7 @@ def render_comparison():
 
 # ── Main layout ──────────────────────────────────────────────────────────────
 
-st.title("Email Campaign Reports Online Design")
+st.title("Email Campaign Reports Blue Design")
 st.caption("Upload CSV exports from your email platform to analyze campaign performance across shops.")
 
 tab_names = ["Cross-Shop Comparison"] + list(SHOPS.keys())
@@ -760,7 +758,7 @@ for tab, (shop_name, shop_cfg) in zip(all_tabs[1:], SHOPS.items()):
                 st.error(error)
             else:
                 # Store in session state for comparison tab
-                st.session_state.shop_data[shop_name] = df_all
+                st.session_state.shop_data_blue[shop_name] = df_all
 
                 years = sorted(df_all["Sent at"].dt.year.unique())
                 year_options = ["All"] + [str(y) for y in years]
@@ -793,7 +791,7 @@ for tab, (shop_name, shop_cfg) in zip(all_tabs[1:], SHOPS.items()):
                 st.divider()
                 render_data_table(df, symbol, shop_key)
         else:
-            st.session_state.shop_data.pop(shop_name, None)
+            st.session_state.shop_data_blue.pop(shop_name, None)
             st.markdown(
                 f'<div class="empty-state">'
                 f"<h3>No data for {shop_name}</h3>"
