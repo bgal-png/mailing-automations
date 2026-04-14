@@ -1,4 +1,7 @@
 import re
+import json
+from urllib.request import urlopen
+from urllib.error import URLError
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -136,6 +139,25 @@ PLOTLY_LAYOUT = dict(
 
 if "shop_data" not in st.session_state:
     st.session_state.shop_data = {}
+
+
+# ── Exchange rates ───────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=3600)
+def fetch_rates_to_czk():
+    """Fetch EUR→CZK and BGN→CZK rates. Returns dict like {'EUR': 25.1, 'BGN': 12.8, 'CZK': 1}."""
+    rates = {"CZK": 1.0}
+    try:
+        with urlopen("https://open.er-api.com/v6/latest/EUR", timeout=5) as resp:
+            data = json.loads(resp.read())
+            eur_czk = data["rates"]["CZK"]
+            eur_bgn = data["rates"]["BGN"]
+            rates["EUR"] = round(eur_czk, 4)
+            rates["BGN"] = round(eur_czk / eur_bgn, 4)
+    except (URLError, KeyError, ValueError, ZeroDivisionError):
+        rates["EUR"] = 25.0
+        rates["BGN"] = 12.8
+    return rates
 
 
 # ── Data processing ──────────────────────────────────────────────────────────
@@ -451,18 +473,22 @@ def render_comparison():
     colors = [SHOP_COLORS[n] for n in shop_names]
 
     # --- Summary table ---
+    rates = fetch_rates_to_czk()
+
     st.markdown('<div class="section-header">Key Metrics Comparison</div>', unsafe_allow_html=True)
     rows = []
     for name in shop_names:
         s = compute_shop_summary(loaded[name])
-        symbol = SHOPS[name]["symbol"]
+        currency = SHOPS[name]["currency"]
+        rate = rates.get(currency, 1.0)
         rows.append({
             "Shop": name,
-            "Currency": SHOPS[name]["currency"],
+            "Currency": currency,
             "Campaigns": s["Campaigns"],
             "Sends": s["Total Sends"],
             "Recipients": s["Total Recipients"],
-            "Sales": s["Total Sales"],
+            "Sales (local)": s["Total Sales"],
+            "Sales (CZK)": round(s["Total Sales"] * rate),
             "Conversions": s["Total Conversions"],
             "Open Rate (%)": s["Avg Open Rate (%)"],
             "Click Rate (%)": s["Avg Click Rate (%)"],
@@ -470,7 +496,13 @@ def render_comparison():
             "Unsubscribes": s["Total Unsubscribes"],
         })
     summary_df = pd.DataFrame(rows)
-    st.dataframe(summary_df, use_container_width=True, hide_index=True, key="cmp_summary")
+    st.dataframe(
+        summary_df, use_container_width=True, hide_index=True, key="cmp_summary",
+        column_config={
+            "Sales (local)": st.column_config.NumberColumn(format="%,.0f"),
+            "Sales (CZK)": st.column_config.NumberColumn(format="%,.0f Kč"),
+        },
+    )
 
     # --- Rate comparisons (bar charts) ---
     st.markdown('<div class="section-header">Rate Comparison</div>', unsafe_allow_html=True)
@@ -516,6 +548,49 @@ def render_comparison():
         fig.update_layout(height=350)
         st.plotly_chart(fig, use_container_width=True, key="cmp_conversions")
 
+    # --- Total sales converted to CZK ---
+    rate_lines = []
+    for curr in sorted(set(SHOPS[n]["currency"] for n in shop_names)):
+        if curr != "CZK":
+            rate_lines.append(f"1 {curr} = {rates.get(curr, '?')} CZK")
+    if rate_lines:
+        st.caption("Exchange rates: " + " | ".join(rate_lines))
+
+    st.markdown('<div class="section-header">Total Sales (converted to CZK)</div>', unsafe_allow_html=True)
+    sales_czk = []
+    for name in shop_names:
+        currency = SHOPS[name]["currency"]
+        rate = rates.get(currency, 1.0)
+        total = loaded[name]["Sales"].sum() * rate
+        sales_czk.append(total)
+
+    fig = go.Figure(go.Bar(
+        x=summary_df["Shop"], y=sales_czk,
+        marker_color=colors,
+        text=[f"{v:,.0f} Kč" for v in sales_czk],
+        textposition="outside",
+    ))
+    _apply_layout(fig, yaxis_title="Sales (CZK)", title=dict(text="Total Sales in CZK", font=dict(size=14, color="rgba(255,255,255,0.8)")))
+    fig.update_layout(height=400)
+    st.plotly_chart(fig, use_container_width=True, key="cmp_sales_czk")
+
+    # --- Monthly sales overlaid (all converted to CZK) ---
+    st.markdown('<div class="section-header">Monthly Sales Trend (CZK)</div>', unsafe_allow_html=True)
+    fig = go.Figure()
+    for name in shop_names:
+        currency = SHOPS[name]["currency"]
+        rate = rates.get(currency, 1.0)
+        df_m = loaded[name].copy()
+        df_m["Month"] = df_m["Sent at"].dt.to_period("M").astype(str)
+        monthly = df_m.groupby("Month").agg(Sales=("Sales", "sum")).reset_index()
+        monthly["Sales (CZK)"] = (monthly["Sales"] * rate).round(0)
+        fig.add_trace(go.Bar(
+            x=monthly["Month"], y=monthly["Sales (CZK)"], name=name,
+            marker_color=SHOP_COLORS[name],
+        ))
+    _apply_layout(fig, barmode="group", yaxis_title="Sales (CZK)")
+    st.plotly_chart(fig, use_container_width=True, key="cmp_monthly_sales_czk")
+
     # --- Monthly open rate trends overlaid ---
     st.markdown('<div class="section-header">Monthly Open Rate Trend</div>', unsafe_allow_html=True)
     fig = go.Figure()
@@ -549,28 +624,6 @@ def render_comparison():
         ))
     _apply_layout(fig, yaxis_title="Click Rate (%)")
     st.plotly_chart(fig, use_container_width=True, key="cmp_monthly_cr")
-
-    # --- Monthly sales per shop (grouped bar, same-currency shops together) ---
-    st.markdown('<div class="section-header">Monthly Sales by Shop</div>', unsafe_allow_html=True)
-    currencies_used = sorted(set(SHOPS[n]["currency"] for n in shop_names))
-
-    for curr in currencies_used:
-        curr_shops = [n for n in shop_names if SHOPS[n]["currency"] == curr]
-        if not curr_shops:
-            continue
-        symbol = SHOPS[curr_shops[0]]["symbol"]
-        st.caption(f"**{curr}** shops")
-        fig = go.Figure()
-        for name in curr_shops:
-            df_m = loaded[name].copy()
-            df_m["Month"] = df_m["Sent at"].dt.to_period("M").astype(str)
-            monthly = df_m.groupby("Month").agg(Sales=("Sales", "sum")).reset_index()
-            fig.add_trace(go.Bar(
-                x=monthly["Month"], y=monthly["Sales"], name=name,
-                marker_color=SHOP_COLORS[name],
-            ))
-        _apply_layout(fig, barmode="group", yaxis_title=f"Sales ({symbol})")
-        st.plotly_chart(fig, use_container_width=True, key=f"cmp_sales_{curr}")
 
 
 # ── Main layout ──────────────────────────────────────────────────────────────
