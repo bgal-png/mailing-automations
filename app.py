@@ -53,7 +53,7 @@ def parse_csv(uploaded_file):
     df["Click Rate (%)"] = (df["Clicks"] / df["Recipients"] * 100).round(2)
     df["Click-to-Open Rate (%)"] = (
         df["Clicks"] / df["Opens"].replace(0, pd.NA) * 100
-    ).round(2).fillna(0)
+    ).fillna(0).round(2)
     df["Unsubscribe Rate (%)"] = (df["Unsubscribes"] / df["Recipients"] * 100).round(3)
     df["Bounce Rate (%)"] = (df["Bounces"] / df["Recipients"] * 100).round(3)
     df["Spam Rate (%)"] = (df["Spam complaints"] / df["Recipients"] * 100).round(4)
@@ -63,10 +63,10 @@ def parse_csv(uploaded_file):
     df["Revenue per Email"] = (df["Sales"] / df["Recipients"]).round(2)
     df["Revenue per Click"] = (
         df["Sales"] / df["Clicks"].replace(0, pd.NA)
-    ).round(2).fillna(0)
+    ).fillna(0).round(2)
     df["Revenue per Conversion"] = (
         df["Sales"] / df["Conversions"].replace(0, pd.NA)
-    ).round(2).fillna(0)
+    ).fillna(0).round(2)
 
     # Drop the original rate columns we don't trust
     df = df.drop(columns=["Openrate", "Clickrate", "Spam rate"])
