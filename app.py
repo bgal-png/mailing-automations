@@ -5,113 +5,90 @@ import plotly.express as px
 import plotly.graph_objects as go
 from io import StringIO
 
-st.set_page_config(page_title="Email Campaign Reports", layout="wide", page_icon="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>&#x1f4ca;</text></svg>")
+st.set_page_config(page_title="Email Campaign Reports", layout="wide")
 
-# ── Custom CSS ───────────────────────────────────────────────────────────────
+# ── Custom CSS — dark mode ───────────────────────────────────────────────────
 
 st.markdown("""
 <style>
-    /* Hide default Streamlit branding */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-
-    /* Header styling */
-    .main-header {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        padding-bottom: 0.2rem;
-        margin-bottom: 0.5rem;
-        border-bottom: 3px solid #2E86AB;
-    }
-    .sub-header {
-        font-size: 0.95rem;
-        color: #6c757d;
-        margin-bottom: 1.5rem;
-    }
-
-    /* Metric cards */
+    /* Metric cards — glass dark */
     [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        padding: 15px 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 14px 18px;
     }
     [data-testid="stMetric"] label {
-        color: #6c757d !important;
-        font-size: 0.8rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        font-size: 0.75rem !important;
         font-weight: 600 !important;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.6px;
     }
     [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #1a1a2e !important;
         font-weight: 700 !important;
     }
 
-    /* Tab styling */
+    /* Tabs — minimal */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 4px;
-        background-color: #f1f3f5;
-        border-radius: 10px;
-        padding: 4px;
+        gap: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
-        font-weight: 600;
+        font-weight: 500;
         font-size: 0.85rem;
-        padding: 8px 16px;
+        padding: 10px 20px;
+        color: rgba(255,255,255,0.5);
     }
     .stTabs [aria-selected="true"] {
-        background-color: #2E86AB !important;
-        color: white !important;
+        color: #4FC3F7 !important;
+        border-bottom: 2px solid #4FC3F7 !important;
     }
 
     /* Section headers */
     .section-header {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        padding: 0.6rem 0 0.3rem 0;
-        border-bottom: 2px solid #e9ecef;
-        margin-bottom: 1rem;
-    }
-
-    /* Upload area */
-    [data-testid="stFileUploader"] {
-        border: 2px dashed #dee2e6;
-        border-radius: 12px;
-        padding: 8px;
-    }
-
-    /* Radio buttons horizontal */
-    .stRadio > div {
-        gap: 0.3rem !important;
-    }
-    .stRadio [data-baseweb="radio"] {
-        margin-right: 0 !important;
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.85);
+        padding: 0.8rem 0 0.4rem 0;
+        margin-bottom: 0.8rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        letter-spacing: 0.3px;
     }
 
     /* Divider */
     hr {
-        border-color: #e9ecef !important;
-        margin: 1.5rem 0 !important;
+        border-color: rgba(255,255,255,0.06) !important;
+        margin: 1.2rem 0 !important;
+    }
+
+    /* Upload area */
+    [data-testid="stFileUploader"] section {
+        border: 1px dashed rgba(255,255,255,0.15);
+        border-radius: 8px;
     }
 
     /* Alert boxes */
     .stAlert {
-        border-radius: 10px !important;
+        border-radius: 8px !important;
     }
 
-    /* Comparison card */
-    .comparison-empty {
+    /* Empty state */
+    .empty-state {
         text-align: center;
-        padding: 4rem 2rem;
-        color: #6c757d;
+        padding: 3.5rem 2rem;
+        color: rgba(255,255,255,0.4);
     }
-    .comparison-empty h3 {
-        color: #495057;
+    .empty-state h3 {
+        color: rgba(255,255,255,0.6);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Dataframe rounding */
+    [data-testid="stDataFrame"] {
+        border-radius: 8px;
+        overflow: hidden;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -144,14 +121,15 @@ EXPECTED_COLUMNS = [
 ]
 
 PLOTLY_LAYOUT = dict(
-    font=dict(family="Inter, sans-serif", size=12, color="#495057"),
+    font=dict(family="'Source Sans Pro', sans-serif", size=12, color="rgba(255,255,255,0.65)"),
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=40, r=20, t=30, b=40),
-    xaxis=dict(gridcolor="#e9ecef", gridwidth=1),
-    yaxis=dict(gridcolor="#e9ecef", gridwidth=1),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    hoverlabel=dict(bgcolor="white", font_size=12, bordercolor="#dee2e6"),
+    margin=dict(l=40, r=16, t=32, b=40),
+    xaxis=dict(gridcolor="rgba(255,255,255,0.06)", gridwidth=1, zeroline=False),
+    yaxis=dict(gridcolor="rgba(255,255,255,0.06)", gridwidth=1, zeroline=False),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                font=dict(size=11)),
+    hoverlabel=dict(bgcolor="#1e1e2e", font_size=12, font_color="#e0e0e0", bordercolor="rgba(255,255,255,0.15)"),
 )
 
 # ── Session state ────────────────────────────────────────────────────────────
@@ -457,7 +435,7 @@ def render_comparison():
 
     if len(loaded) < 2:
         st.markdown(
-            '<div class="comparison-empty">'
+            '<div class="empty-state">'
             "<h3>Upload data in at least 2 shop tabs to compare</h3>"
             "<p>Go to the individual shop tabs and upload CSV reports. "
             "They will appear here automatically for side-by-side comparison.</p>"
@@ -510,7 +488,7 @@ def render_comparison():
                 text=summary_df[metric].apply(lambda v: f"{v:.2f}%"),
                 textposition="outside",
             ))
-            _apply_layout(fig, yaxis_title="%", title=dict(text=title, font=dict(size=14)))
+            _apply_layout(fig, yaxis_title="%", title=dict(text=title, font=dict(size=14, color="rgba(255,255,255,0.8)")))
             fig.update_layout(height=350)
             st.plotly_chart(fig, use_container_width=True, key=f"cmp_{metric}")
 
@@ -524,7 +502,7 @@ def render_comparison():
             marker_color=colors,
             text=summary_df["Sends"], textposition="outside",
         ))
-        _apply_layout(fig, yaxis_title="Sends", title=dict(text="Total Sends", font=dict(size=14)))
+        _apply_layout(fig, yaxis_title="Sends", title=dict(text="Total Sends", font=dict(size=14, color="rgba(255,255,255,0.8)")))
         fig.update_layout(height=350)
         st.plotly_chart(fig, use_container_width=True, key="cmp_sends")
 
@@ -534,7 +512,7 @@ def render_comparison():
             marker_color=colors,
             text=summary_df["Conversions"], textposition="outside",
         ))
-        _apply_layout(fig, yaxis_title="Conversions", title=dict(text="Total Conversions", font=dict(size=14)))
+        _apply_layout(fig, yaxis_title="Conversions", title=dict(text="Total Conversions", font=dict(size=14, color="rgba(255,255,255,0.8)")))
         fig.update_layout(height=350)
         st.plotly_chart(fig, use_container_width=True, key="cmp_conversions")
 
@@ -597,8 +575,8 @@ def render_comparison():
 
 # ── Main layout ──────────────────────────────────────────────────────────────
 
-st.markdown('<div class="main-header">Email Campaign Reports</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Upload CSV exports from your email platform to analyze campaign performance across shops.</div>', unsafe_allow_html=True)
+st.title("Email Campaign Reports")
+st.caption("Upload CSV exports from your email platform to analyze campaign performance across shops.")
 
 tab_names = ["Cross-Shop Comparison"] + list(SHOPS.keys())
 all_tabs = st.tabs(tab_names)
@@ -660,7 +638,7 @@ for tab, (shop_name, shop_cfg) in zip(all_tabs[1:], SHOPS.items()):
         else:
             st.session_state.shop_data.pop(shop_name, None)
             st.markdown(
-                f'<div class="comparison-empty">'
+                f'<div class="empty-state">'
                 f"<h3>No data for {shop_name}</h3>"
                 f"<p>Upload a CSV export from your email platform to see campaign analytics.</p>"
                 f"</div>",
