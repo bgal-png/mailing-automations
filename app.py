@@ -185,7 +185,7 @@ def render_best_worst(df, symbol):
         )
 
 
-def render_charts(df, symbol):
+def render_charts(df, symbol, shop_key):
     """Render all the analytical charts."""
     df_plot = df.copy()
     df_plot["Date"] = df_plot["Sent at"].dt.strftime("%Y-%m-%d")
@@ -198,7 +198,7 @@ def render_charts(df, symbol):
         color_discrete_sequence=["#2E86AB"],
     )
     fig_sales.update_layout(yaxis_title=f"Sales ({symbol})", xaxis_title="Campaign Date")
-    st.plotly_chart(fig_sales, use_container_width=True)
+    st.plotly_chart(fig_sales, use_container_width=True, key=f"{shop_key}_sales")
 
     # --- Opens & Clicks over time ---
     st.subheader("Opens & Clicks Over Time")
@@ -214,7 +214,7 @@ def render_charts(df, symbol):
         hovertext=df_plot["Campaign title"],
     ))
     fig_oc.update_layout(yaxis_title="Count", xaxis_title="Campaign Date")
-    st.plotly_chart(fig_oc, use_container_width=True)
+    st.plotly_chart(fig_oc, use_container_width=True, key=f"{shop_key}_oc")
 
     # --- Open Rate & Click Rate ---
     col1, col2 = st.columns(2)
@@ -226,7 +226,7 @@ def render_charts(df, symbol):
             markers=True, color_discrete_sequence=["#2E86AB"],
         )
         fig_or.update_layout(yaxis_title="Open Rate (%)")
-        st.plotly_chart(fig_or, use_container_width=True)
+        st.plotly_chart(fig_or, use_container_width=True, key=f"{shop_key}_or")
 
     with col2:
         st.subheader("Click Rate Over Time")
@@ -236,7 +236,7 @@ def render_charts(df, symbol):
             markers=True, color_discrete_sequence=["#E8451E"],
         )
         fig_cr.update_layout(yaxis_title="Click Rate (%)")
-        st.plotly_chart(fig_cr, use_container_width=True)
+        st.plotly_chart(fig_cr, use_container_width=True, key=f"{shop_key}_cr")
 
     # --- Conversions over time ---
     st.subheader("Conversions Over Time")
@@ -246,7 +246,7 @@ def render_charts(df, symbol):
         color_discrete_sequence=["#56A764"],
     )
     fig_conv.update_layout(yaxis_title="Conversions", xaxis_title="Campaign Date")
-    st.plotly_chart(fig_conv, use_container_width=True)
+    st.plotly_chart(fig_conv, use_container_width=True, key=f"{shop_key}_conv")
 
     # --- Revenue per Email & Revenue per Click ---
     col3, col4 = st.columns(2)
@@ -258,7 +258,7 @@ def render_charts(df, symbol):
             color_discrete_sequence=["#A23B72"],
         )
         fig_rpe.update_layout(yaxis_title=f"Revenue per Email ({symbol})")
-        st.plotly_chart(fig_rpe, use_container_width=True)
+        st.plotly_chart(fig_rpe, use_container_width=True, key=f"{shop_key}_rpe")
 
     with col4:
         st.subheader("Revenue per Click")
@@ -268,7 +268,7 @@ def render_charts(df, symbol):
             color_discrete_sequence=["#F18F01"],
         )
         fig_rpc.update_layout(yaxis_title=f"Revenue per Click ({symbol})")
-        st.plotly_chart(fig_rpc, use_container_width=True)
+        st.plotly_chart(fig_rpc, use_container_width=True, key=f"{shop_key}_rpc")
 
     # --- Unsubscribes & Bounces ---
     st.subheader("Unsubscribes & Bounces Over Time")
@@ -282,7 +282,7 @@ def render_charts(df, symbol):
         marker_color="#FFB627", hovertext=df_plot["Campaign title"],
     ))
     fig_ub.update_layout(barmode="group", yaxis_title="Count", xaxis_title="Campaign Date")
-    st.plotly_chart(fig_ub, use_container_width=True)
+    st.plotly_chart(fig_ub, use_container_width=True, key=f"{shop_key}_ub")
 
     # --- Click-to-Open Rate ---
     st.subheader("Click-to-Open Rate Over Time")
@@ -292,10 +292,10 @@ def render_charts(df, symbol):
         markers=True, color_discrete_sequence=["#7B2D8E"],
     )
     fig_ctor.update_layout(yaxis_title="Click-to-Open Rate (%)")
-    st.plotly_chart(fig_ctor, use_container_width=True)
+    st.plotly_chart(fig_ctor, use_container_width=True, key=f"{shop_key}_ctor")
 
 
-def render_data_table(df, symbol):
+def render_data_table(df, symbol, shop_key):
     """Render the full campaign data table."""
     st.subheader("Campaign Data Table")
     display_cols = [
@@ -310,6 +310,7 @@ def render_data_table(df, symbol):
         df[display_cols],
         use_container_width=True,
         hide_index=True,
+        key=f"{shop_key}_datatable",
         column_config={
             "Sent at": st.column_config.DatetimeColumn(format="YYYY-MM-DD HH:mm"),
             "Sales": st.column_config.NumberColumn(format=f"%.0f {symbol}"),
@@ -319,7 +320,7 @@ def render_data_table(df, symbol):
     )
 
 
-def render_monthly_summary(df, symbol):
+def render_monthly_summary(df, symbol, shop_key):
     """Render a monthly aggregation summary."""
     st.subheader("Monthly Summary")
     df_monthly = df.copy()
@@ -344,6 +345,7 @@ def render_monthly_summary(df, symbol):
         monthly,
         use_container_width=True,
         hide_index=True,
+        key=f"{shop_key}_monthly",
         column_config={
             "Total_Sales": st.column_config.NumberColumn("Total Sales", format=f"%.0f {symbol}"),
             "Total_Recipients": st.column_config.NumberColumn("Emails Sent", format="%d"),
@@ -364,7 +366,7 @@ def render_monthly_summary(df, symbol):
     )
     fig_monthly.update_traces(textposition="outside")
     fig_monthly.update_layout(yaxis_title=f"Total Sales ({symbol})")
-    st.plotly_chart(fig_monthly, use_container_width=True)
+    st.plotly_chart(fig_monthly, use_container_width=True, key=f"{shop_key}_monthly_chart")
 
 
 # ── Main layout ──────────────────────────────────────────────────────────────
@@ -404,14 +406,15 @@ for tab, (shop_name, shop_cfg) in zip(tabs, SHOPS.items()):
                     + (f" for **{selected_year}**" if selected_year != "All" else "")
                     + f" from **{uploaded.name}**"
                 )
+                shop_key = shop_name.replace(".", "_").replace(" ", "_")
                 render_kpis(df, symbol)
                 st.divider()
                 render_best_worst(df, symbol)
                 st.divider()
-                render_charts(df, symbol)
+                render_charts(df, symbol, shop_key)
                 st.divider()
-                render_monthly_summary(df, symbol)
+                render_monthly_summary(df, symbol, shop_key)
                 st.divider()
-                render_data_table(df, symbol)
+                render_data_table(df, symbol, shop_key)
         else:
             st.info(f"Upload a CSV export from your email platform for **{shop_name}** to see campaign analytics.")
