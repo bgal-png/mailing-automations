@@ -381,6 +381,21 @@ def render_charts(df, symbol, shop_key):
     _apply_layout(fig, barmode="group", yaxis_title="Count")
     st.plotly_chart(fig, use_container_width=True, key=f"{shop_key}_ub")
 
+    # --- Unsub & Bounce Rates ---
+    col5, col6 = st.columns(2)
+    with col5:
+        st.markdown('<div class="section-header">Unsubscribe Rate</div>', unsafe_allow_html=True)
+        fig = px.line(df_plot, x="Date", y="Unsubscribe Rate (%)", hover_data=["Campaign title"],
+                      markers=True, color_discrete_sequence=[c2])
+        _apply_layout(fig, yaxis_title="Unsub Rate (%)")
+        st.plotly_chart(fig, use_container_width=True, key=f"{shop_key}_unsub_rate")
+    with col6:
+        st.markdown('<div class="section-header">Bounce Rate</div>', unsafe_allow_html=True)
+        fig = px.line(df_plot, x="Date", y="Bounce Rate (%)", hover_data=["Campaign title"],
+                      markers=True, color_discrete_sequence=["#FFB627"])
+        _apply_layout(fig, yaxis_title="Bounce Rate (%)")
+        st.plotly_chart(fig, use_container_width=True, key=f"{shop_key}_bounce_rate")
+
     # --- Click-to-Open Rate ---
     st.markdown('<div class="section-header">Click-to-Open Rate</div>', unsafe_allow_html=True)
     fig = px.line(df_plot, x="Date", y="Click-to-Open Rate (%)", hover_data=["Campaign title"],
