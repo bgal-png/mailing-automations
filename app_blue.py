@@ -136,7 +136,7 @@ PLOTLY_LAYOUT = dict(
 # ── Session state ────────────────────────────────────────────────────────────
 
 if "shop_data_blue" not in st.session_state:
-    st.session_state.shop_data_blue_blue = {}
+    st.session_state.shop_data_blue = {}
 
 
 # ── Exchange rates ───────────────────────────────────────────────────────────
